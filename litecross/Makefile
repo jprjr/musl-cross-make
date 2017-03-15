@@ -3,45 +3,18 @@ OUTPUT = $(CURDIR)/output
 
 BINUTILS_SRCDIR = BINUTILS_SRCDIR_not_set
 GCC_SRCDIR = GCC_SRCDIR_not_set
-MUSL_SRCDIR = MUSL_SRCDIR_not_set
+MINGW_SRCDIR = MINGW_SRCDIR_not_set
 
 GCC_CONFIG_FOR_TARGET = 
 COMMON_CONFIG = 
 GCC_CONFIG = 
 TOOLCHAIN_CONFIG = 
 
-XGCC_DIR = ../obj_toolchain/gcc
+XGCC_DIR = $(CURDIR)/obj_toolchain/gcc
 XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
+XCPP = $(XGCC_DIR)/cpp -B $(XGCC_DIR)
 
 -include config.mak
-
-ifneq ($(findstring fdpic,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --enable-fdpic
-endif
-
-ifneq ($(filter x86_64%x32,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --with-abi=x32
-endif
-
-ifneq ($(findstring powerpc64,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --with-abi=elfv2
-endif
-
-ifneq ($(findstring mips64,$(TARGET))$(findstring mipsisa64,$(TARGET)),)
-ifneq ($(findstring n32,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --with-abi=n32
-else
-GCC_CONFIG_FOR_TARGET += --with-abi=64
-endif
-endif
-
-ifneq ($(filter %sf,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --with-float=soft
-endif
-
-ifneq ($(filter %hf,$(TARGET)),)
-GCC_CONFIG_FOR_TARGET += --with-float=hard
-endif
 
 
 MAKE += MULTILIB_OSDIRNAMES=
@@ -62,22 +35,32 @@ FULL_TOOLCHAIN_CONFIG = --enable-languages=c,c++ \
 	--disable-libmpx \
 	--enable-libstdcxx-time
 
-FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
-	--prefix= --host=$(TARGET)
+FULL_MINGW_HEADERS_CONFIG = $(MINGW_CONFIG) \
+	--prefix= --host=$(TARGET) --enable-sdk=all \
+	--enable-idl --enable-secure-api
+
+FULL_MINGW_CRT_CONFIG = $(MINGW_CONFIG) \
+	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot
+
+FULL_MINGW_PTHREADS_CONFIG = $(MINGW_CONFIG) \
+	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot
 
 ifeq ($(NATIVE),)
 SYSROOT = /$(TARGET)
 FULL_TOOLCHAIN_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot
-FULL_MUSL_CONFIG += CC="$(XGCC)" LIBCC="../obj_toolchain/$(TARGET)/libgcc/libgcc.a" 
-MUSL_VARS = AR=../obj_toolchain/binutils/ar RANLIB=../obj_toolchain/binutils/ranlib
-obj_musl/.lc_configured: | obj_toolchain/gcc/.lc_built
-obj_musl/.lc_built: | obj_toolchain/$(TARGET)/libgcc/libgcc.a
+FULL_MINGW_HEADERS_CONFIG += CC="$(XGCC)"
+FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
+FULL_MINGW_PTHREADS_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
+MINGW_VARS =
+obj_mingw_headers/.lc_configured: | obj_toolchain/binutils/.lc_built
+obj_mingw_crt/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built
+obj_mingw_pthreads/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built obj_sysroot/.lc_libs_crt
 obj_toolchain/gcc/.lc_built: | obj_sysroot/usr obj_sysroot/lib64 obj_sysroot/include
-obj_toolchain/.lc_built: | obj_sysroot/.lc_libs obj_sysroot/.lc_headers
+obj_toolchain/.lc_built: | obj_sysroot/.lc_headers obj_sysroot/.lc_libs_crt
 else
 SYSROOT = /
 FULL_TOOLCHAIN_CONFIG += --host=$(TARGET)
-MUSL_VARS = 
+MINGW_VARS = 
 endif
 
 ifeq ($(TARGET),)
@@ -90,15 +73,15 @@ install: all
 
 else
 
-all: musl toolchain
+all: mingw toolchain
 
-install: install-musl install-toolchain
+install: install-mingw install-toolchain
 
-musl: obj_musl/.lc_built
+mingw: obj_mingw_headers/.lc_built obj_mingw_crt/.lc_built obj_mingw_pthreads/.lc_built
 
 toolchain: obj_toolchain/.lc_built
 
-.PHONY: all musl toolchain install-musl install-toolchain clean
+.PHONY: all mingw toolchain install-mingw install-toolchain clean
 
 src_binutils: | $(BINUTILS_SRCDIR)
 	ln -sf $(BINUTILS_SRCDIR) $@
@@ -106,8 +89,8 @@ src_binutils: | $(BINUTILS_SRCDIR)
 src_gcc: | $(GCC_SRCDIR)
 	ln -sf $(GCC_SRCDIR) $@
 
-src_musl: | $(MUSL_SRCDIR)
-	ln -sf $(MUSL_SRCDIR) $@
+src_mingw: | $(MINGW_SRCDIR)
+	ln -sf $(MINGW_SRCDIR) $@
 
 ifneq ($(GMP_SRCDIR),)
 src_toolchain: src_gmp
@@ -160,61 +143,73 @@ obj_toolchain/.lc_configured: | obj_toolchain src_toolchain
 	cd obj_toolchain && ../src_toolchain/configure $(FULL_TOOLCHAIN_CONFIG)
 	touch $@
 
-obj_toolchain/gcc/.lc_built: | obj_toolchain/.lc_configured
+obj_toolchain/gas/.lc_built: | obj_toolchain/.lc_configured
+	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-gas
+	touch $@
+
+obj_toolchain/binutils/.lc_built: | obj_toolchain/.lc_configured
+	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-binutils
+	touch $@
+
+obj_toolchain/gcc/.lc_built: | obj_sysroot/.lc_headers obj_toolchain/.lc_configured
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-gcc
 	touch $@
 
-obj_musl/.lc_configured: | obj_musl src_musl
-	cd obj_musl && ../src_musl/configure $(FULL_MUSL_CONFIG)
+obj_mingw_headers/.lc_configured: | obj_mingw_headers src_mingw
+	cd obj_mingw_headers && ../src_mingw/mingw-w64-headers/configure $(FULL_MINGW_HEADERS_CONFIG)
 	touch $@
 
-obj_sysroot/.lc_headers: | obj_musl/.lc_configured obj_sysroot
-	cd obj_musl && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot install-headers
+obj_mingw_headers/.lc_built: | obj_mingw_headers/.lc_configured
+	cd obj_mingw_headers && $(MAKE) $(MINGW_VARS)
 	touch $@
 
-obj_toolchain/$(TARGET)/libgcc/libgcc.a: | obj_sysroot/.lc_headers
-	cd obj_toolchain && $(MAKE) MAKE="$(MAKE) enable_shared=no" all-target-libgcc
-
-obj_musl/.lc_built: | obj_musl/.lc_configured
-	cd obj_musl && $(MAKE) $(MUSL_VARS)
+obj_sysroot/.lc_headers: | obj_mingw_headers/.lc_configured obj_sysroot
+	cd obj_mingw_headers && $(MAKE) DESTDIR=$(CURDIR)/obj_sysroot/$(TARGET) install
+	ln -sf $(TARGET) $(CURDIR)/obj_sysroot/mingw
 	touch $@
 
-obj_sysroot/.lc_libs: | obj_musl/.lc_built
-	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(CURDIR)/obj_sysroot install
+obj_mingw_crt/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built obj_toolchain/gcc/.lc_built obj_mingw_crt src_mingw
+	cd obj_mingw_crt && ../src_mingw/mingw-w64-crt/configure $(FULL_MINGW_CRT_CONFIG)
 	touch $@
 
-obj_toolchain/.lc_built: | obj_toolchain/.lc_configured obj_toolchain/gcc/.lc_built
+obj_mingw_crt/.lc_built: | obj_mingw_crt/.lc_configured
+	cd obj_mingw_crt && $(MAKE) $(MINGW_VARS)
+	touch $@
+
+obj_mingw_pthreads/.lc_configured: | obj_mingw_crt/.lc_built obj_mingw_pthreads src_mingw
+	cd obj_mingw_pthreads && ../src_mingw/mingw-w64-libraries/winpthreads/configure $(FULL_MINGW_PTHREADS_CONFIG)
+	touch $@
+
+obj_mingw_pthreads/.lc_built: | obj_mingw_pthreads/.lc_configured
+	cd obj_mingw_pthreads && $(MAKE) $(MINGW_VARS)
+	touch $@
+
+obj_sysroot/.lc_libs_pthreads: | obj_mingw_pthreads/.lc_built
+	cd obj_mingw_pthreads && $(MAKE) $(MINGW_VARS) DESTDIR=$(CURDIR)/obj_sysroot/$(TARGET) install
+	touch $@
+
+obj_sysroot/.lc_libs_crt: | obj_mingw_crt/.lc_built
+	cd obj_mingw_crt && $(MAKE) $(MINGW_VARS) DESTDIR=$(CURDIR)/obj_sysroot/$(TARGET) install
+	touch $@
+
+obj_toolchain/.lc_built: | obj_toolchain/.lc_configured obj_sysroot/.lc_headers obj_sysroot/.lc_libs_crt
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)"
 	touch $@
+install-mingw-headers: | obj_mingw_headers/.lc_configured
+	cd obj_mingw_headers && $(MAKE) $(MINGW_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
-install-musl: | obj_musl/.lc_built
-	cd obj_musl && $(MAKE) $(MUSL_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+install-mingw-crt: | obj_mingw_crt/.lc_built
+	cd obj_mingw_crt && $(MAKE) $(MINGW_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
-install-toolchain: | obj_toolchain/.lc_built
+install-mingw-pthreads: | obj_mingw_pthreads/.lc_built
+	cd obj_mingw_pthreads && $(MAKE) $(MINGW_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
+
+install-mingw: install-mingw-headers install-mingw-crt install-mingw-pthreads
+
+install-toolchain: | obj_mingw_crt/.lc_configured obj_toolchain/.lc_built
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" DESTDIR=$(DESTDIR)$(OUTPUT) install
 	ln -sf $(TARGET)-gcc $(DESTDIR)$(OUTPUT)/bin/$(TARGET)-cc
 
-ifneq ($(LINUX_SRCDIR),)
-TARGET_ARCH = $(firstword $(subst -, ,$(TARGET)))
-TARGET_ARCH_MANGLED = $(patsubst i%86,x86,$(patsubst aarch64%,arm64%,$(TARGET_ARCH)))
-LINUX_ARCH_LIST = $(sort $(notdir $(wildcard $(LINUX_SRCDIR)/arch/*)))
-LINUX_ARCH = $(firstword $(foreach a,$(LINUX_ARCH_LIST),$(findstring $(a),$(TARGET_ARCH_MANGLED))))
-ifneq ($(LINUX_ARCH),)
-all: kernel-headers
-install: install-kernel-headers
-kernel-headers: | obj_kernel_headers/.lc_built
-src_kernel_headers: | $(LINUX_SRCDIR)
-	ln -sf "$(LINUX_SRCDIR)" $@
-obj_kernel_headers/.lc_built: | src_kernel_headers
-	mkdir -p $(CURDIR)/obj_kernel_headers/staged
-	cd src_kernel_headers && $(MAKE) ARCH=$(LINUX_ARCH) O=$(CURDIR)/obj_kernel_headers INSTALL_HDR_PATH=$(CURDIR)/obj_kernel_headers/staged headers_install
-	find obj_kernel_headers/staged/include '(' -name .install -o -name ..install.cmd ')' -exec rm {} +
-	touch $@
-install-kernel-headers: | obj_kernel_headers/.lc_built
-	mkdir -p $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
-	cp -R obj_kernel_headers/staged/include/* $(DESTDIR)$(OUTPUT)$(SYSROOT)/include
-endif
-endif
 
 endif
 

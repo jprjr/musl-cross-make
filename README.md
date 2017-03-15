@@ -1,14 +1,17 @@
-musl-cross-make
+mingw-cross-make
 ===============
 
-This is a the second generation of musl-cross-make, a fast, simple,
-but advanced makefile-based approach for producing musl-targeting
+This is a fork of [musl-cross-make](https://github.com/richfelker/musl-cross-make),
+but for mingw. I haven't tested it super-thoroughly yet, but it seems
+to work!
+
+It's a fast, Makefile-based approach for producing Windows-targeting
 cross compilers. Features include:
 
-- Single-stage GCC build, used to build both musl libc and its own
+- Single-stage GCC build, used to build both mingw and its own
   shared target libs depending on libc.
 
-- No hard-coded absoluete paths; resulting cross compilers can be
+- No hard-coded absolute paths; resulting cross compilers can be
   copied/moved anywhere.
 
 - Ability to build multiple cross compilers for different targets
@@ -20,17 +23,13 @@ cross compilers. Features include:
 - Automatic download of source packages, including GCC prerequisites
   (GMP, MPC, MPFR), using https and checking hashes.
 
-- Automatic patching with canonical musl support patches and patches
-  which provide bug fixes and features musl depends on for some arch
-  targets.
-
 
 Usage
 -----
 
 The build system can be configured by providing a `config.mak` file in
 the top-level directory. The only mandatory variable is `TARGET`, which
-should contain a gcc target tuple (such as `i486-linux-musl`), but many
+should contain a gcc target tuple (such as `i686-w64-mingw32`), but many
 more options are available. See the provided `config.mak.dist` and
 `presets/*` for examples.
 
@@ -47,25 +46,14 @@ Supported `TARGET`s
 The following is a non-exhaustive list of `$(TARGET)` tuples that are
 believed to work:
 
-- `aarch64[_be]-linux-musl`
-- `arm[eb]-linux-musleabi[hf]`
-- `i*86-linux-musl`
-- `microblaze[el]-linux-musl`
-- `mips-linux-musl`
-- `mips[el]-linux-musl[sf]`
-- `mips64[el]-linux-musl[n32][sf]`
-- `powerpc-linux-musl[sf]`
-- `powerpc64[le]-linux-musl`
-- `s390x-linux-musl`
-- `sh*[eb]-linux-musl[fdpic][sf]`
-- `x86_64-linux-musl[x32]`
-
+- `i686-w64-mingw32`
+- `x86_64-w64-mingw32`
 
 
 How it works
 ------------
 
-The current musl-cross-make is factored into two layers:
+The current mingw-cross-make is factored into two layers:
 
 1. The top-level Makefile which is responsible for downloading,
    verifying, extracting, and patching sources, and for setting up a
@@ -85,14 +73,12 @@ to use them.
 
 Rather than building the whole toolchain tree at once, though,
 litecross starts by building just the gcc directory and its
-prerequisites, to get an `xgcc` that can be used to configure musl. It
-then configures musl, installs musl's headers to a staging "build
-sysroot", and builds `libgcc.a` using those headers. At this point it
-has all the prerequisites to build musl `libc.a` and `libc.so`, which the
-rest of the gcc target-libs depend on; once they are built, the full
-toolchain `make all` can proceed.
+prerequisites, to get an `xgcc` that can be used to build mingw. It
+then configures mingw, installs mingw's headers to a staging "build
+sysroot", and builds mingw's crt libraries using those headers. At this point it
+has all the prerequisites to build the full toolchain.
 
-Litecross does not actually depend on the musl-cross-make top-level
+Litecross does not actually depend on the mingw-cross-make top-level
 build system; it can be used with any pre-extracted, properly patched
 set of source trees.
 
@@ -102,34 +88,11 @@ Project scope and goals
 
 The primary goals of this project are to:
 
-- Provide canonical musl support patches for GCC and binutils.
-
-- Serve as a canonical example of how GCC should be built to target
-  musl.
-
-- Streamline the production of musl-targeting cross compilers so that
-  musl users can easily produce musl-linked applications or bootstrap
-  new systems using musl.
-
-- Assist musl and toolchain developers in development and testing.
-
-While the patches applied to GCC and binutils are all intended not to
-break non-musl configurations, musl-cross-make itself is specific to
-musl. Changes to add support for exotic target variants outside of
-what upstream musl supports are probably out-of-scope unless they are
-non-invasive. Changes to fix issues building musl-cross-make to run on
-non-Linux systems are well within scope as long as they are clean.
-
-Most importantly, this is a side project to benefit musl and its
-users. It's not intended to be something high-maintenance or to divert
-development effort away from musl itself.
+- Quickly build mingw cross-compilers.
 
 
 Patches included
 ----------------
-
-In addition to canonical musl support patches for GCC,
-musl-cross-make's patch set provides:
 
 - Static-linked PIE support
 - Addition of `--enable-default-pie`
@@ -137,10 +100,4 @@ musl-cross-make's patch set provides:
 - Support for J2 Core CPU target in GCC & binutils
 - SH/FDPIC ABI support
 
-Most of these patches are integrated in gcc trunk/binutils master.
-They should also be usable with Gregor's original musl-cross or other
-build systems, if desired.
-
-Some functionality (SH/FDPIC, and support for J2 specific features) is
-presently only available with gcc 5.2.0 and later, and binutils 2.25.1
-and later.
+Do these actually work on Windows? I'll be honest, I don't totally know.

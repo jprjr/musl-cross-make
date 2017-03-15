@@ -7,11 +7,8 @@
 # There is no default TARGET; you must select one here or on the make
 # command line. Some examples:
 
-# TARGET = i486-linux-musl
-# TARGET = x86_64-linux-musl
-# TARGET = arm-linux-musleabi
-# TARGET = arm-linux-musleabihf
-# TARGET = sh2eb-linux-muslfdpic
+# TARGET = i686-w64-mingw32
+# TARGET = x86_64-w64-mingw32
 # ...
 
 # By default, cross compilers are installed to ./output under the top-level
@@ -34,12 +31,11 @@
 
 # BINUTILS_VER = 2.25.1
 # GCC_VER = 5.2.0
-# MUSL_VER = git-master
+# MINGW_VER = v5.0.1
 # GMP_VER =
 # MPC_VER =
 # MPFR_VER =
 # ISL_VER =
-# LINUX_VER =
 
 # By default source archives are downloaded with wget. curl is also an option.
 
@@ -52,7 +48,7 @@
 # system you build on can natively (or via binfmt_misc and # qemu) run
 # binaries produced by the existing toolchain (in this example, i486).
 
-# COMMON_CONFIG += CC="i486-linux-musl-gcc -static --static" CXX="i486-linux-musl-g++ -static --static"
+# COMMON_CONFIG += CC="i686-w64-mingw32-gcc -static --static" CXX="i686-w64-mingw32-gcc -static --static"
 
 # Recommended options for smaller build for deploying binaries:
 
