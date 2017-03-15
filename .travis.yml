@@ -1,0 +1,9 @@
+language: c
+compiler: gcc
+env:
+- TRIPLET=i686-w64-mingw32
+- TRIPLET=x86_64-w64-mingw32
+script:
+- travis_wait 60 bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.script $TRIPLET
+after_failure:
+- bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.after_failure

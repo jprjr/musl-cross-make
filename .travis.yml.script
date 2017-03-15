@@ -1,0 +1,95 @@
+#!/bin/bash
+set -e
+
+target=$1
+
+if [[ -z "$target" ]]; then
+    printf 'Usage: %s <target>\n' "$0"
+    exit 1
+fi
+
+declare -A versions
+versions[binutils]=2.27
+versions[gcc]=6.3.0
+versions[mingw]=v5.0.1
+versions[gmp]=6.1.1
+versions[mpc]=1.0.3
+versions[mpfr]=3.1.4
+
+printf 'TARGET = %s\n' "$target" > config.mak
+
+printf 'COMMON_CONFIG += --disable-nls\n' >> config.mak
+printf 'GCC_CONFIG += --enable-languages=c,c++\n' >> config.mak
+printf 'GCC_CONFIG += --disable-libquadmath --disable-decimal-float\n' >> config.mak
+printf 'GCC_CONFIG += --disable-multilib\n' >> config.mak
+
+printf 'BINUTILS_VER = %s\n' "${versions[binutils]}" >> config.mak
+printf 'GCC_VER = %s\n' "${versions[gcc]}" >> config.mak
+printf 'MINGW_VER = %s\n' "${versions[mingw]}" >> config.mak
+printf 'GMP_VER = %s\n' "${versions[gmp]}" >> config.mak
+printf 'MPC_VER = %s\n' "${versions[mpc]}" >> config.mak
+printf 'MPFR_VER = %s\n' "${versions[mpfr]}" >> config.mak
+
+mkdir -p log
+mkdir -p dist
+mkdir -p output
+
+make >log/${target} 2>&1
+make install >>log/${target} 2>&1
+make clean >>log/${target} 2>&1
+
+tar -czf "dist/gcc-${versions[gcc]}-${target}.tar.gz" \
+  --owner 0 \
+  --group 0 \
+ -C output .
+
+rm -rf output
+
+# exit if TRAVIS_TAG is empty, no need to release anything
+if [ -z "${TRAVIS_TAG}" ]; then
+  exit 0
+fi
+
+
+# download and untar github-release
+wget -nv -O github-release.amd64.tar.bz2 https://github.com/aktau/github-release/releases/download/v0.6.2/linux-amd64-github-release.tar.bz2
+tar xf github-release.amd64.tar.bz2 --strip-components=3
+
+# get user and repo names
+USERNAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f1)
+REPONAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f2)
+
+rm -f dist/release.md
+touch dist/release.md
+printf 'Built using `mingw-%s`\n' "${versions[mingw]}" >> dist/release.md
+
+rm -f dist/manifest.txt
+touch dist/manifest.txt
+for i in "${!versions[@]}"; do
+    printf '%s=%s\n' "${i}" "${versions[$i]}" >> dist/manifest.txt
+done
+
+# release
+./github-release release \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "${TRAVIS_TAG}" \
+  --description "$(cat dist/release.md)" >>log/${target} 2>&1 || true
+
+# manifest
+./github-release upload \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "manifest.txt" \
+  --file "dist/manifest.txt" >>log/${target} 2>&1 || true
+
+# compiled gcc
+./github-release upload \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "gcc-${versions[gcc]}-${target}.tar.gz" \
+  --file "dist/gcc-${versions[gcc]}-${target}.tar.gz" >>log/${target} 2>&1
+
