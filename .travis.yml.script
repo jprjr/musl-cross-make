@@ -33,6 +33,15 @@ printf 'MPFR_VER = %s\n' "${versions[mpfr]}" >> config.mak
 mkdir -p log
 mkdir -p dist
 mkdir -p output
+mkdir -p tools
+
+mkdir -p tools/gcc-x86_64-linux-musl
+curl -R -L -o tools/gcc-x86_64-linux-musl.tar.gz "https://github.com/just-containers/musl-cross-make/releases/download/v2/gcc-6.3.0-x86_64-linux-musl.tar.gz"
+tar xf tools/gcc-x86_64-linux-musl.tar.gz -C tools/gcc-x86_64-linux-musl
+
+printf 'COMMON_CONFIG += CC="x86_64-linux-musl-gcc -static --static" CXX="x86_64-linux-musl-gcc -static --static"\n' >> config.mak
+
+export PATH="$(pwd)/tools/gcc-x86_64-linux-musl:$PATH"
 
 make >log/${target} 2>&1
 make install >>log/${target} 2>&1
