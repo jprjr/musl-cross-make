@@ -13,6 +13,8 @@ TOOLCHAIN_CONFIG =
 XGCC_DIR = $(CURDIR)/obj_toolchain/gcc
 XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
 XCPP = $(XGCC_DIR)/cpp -B $(XGCC_DIR)
+XAR  = $(CURDIR)/obj_toolchain/binutils/ar
+XRANLIB  = $(CURDIR)/obj_toolchain/binutils/ranlib
 
 -include config.mak
 
@@ -51,7 +53,7 @@ FULL_TOOLCHAIN_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot
 FULL_MINGW_HEADERS_CONFIG += CC="$(XGCC)"
 FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
 FULL_MINGW_PTHREADS_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
-MINGW_VARS =
+MINGW_VARS = AR=$(XAR) RANLIB=$(XRANLIB)
 obj_mingw_headers/.lc_configured: | obj_toolchain/binutils/.lc_built
 obj_mingw_crt/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built
 obj_mingw_pthreads/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built obj_sysroot/.lc_libs_crt
