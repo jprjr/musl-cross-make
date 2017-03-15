@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-tail log/*
+tail -n 2000 log/*
