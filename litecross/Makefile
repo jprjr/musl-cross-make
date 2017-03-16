@@ -14,7 +14,10 @@ XGCC_DIR = $(CURDIR)/obj_toolchain/gcc
 XGCC = $(XGCC_DIR)/xgcc -B $(XGCC_DIR)
 XCPP = $(XGCC_DIR)/cpp -B $(XGCC_DIR)
 XAR  = $(CURDIR)/obj_toolchain/binutils/ar
+XAS  = $(CURDIR)/obj_toolchain/gas/as-new
 XRANLIB  = $(CURDIR)/obj_toolchain/binutils/ranlib
+XRC  = $(CURDIR)/obj_toolchain/binutils/windres --preprocessor="$(XGCC) -I$(CURDIR)/obj_sysroot/$(TARGET)/include -E -xc-header -DRC_INVOKED"
+DLLTOOL = $(CURDIR)/obj_toolchain/binutils/dlltool
 
 -include config.mak
 
@@ -51,9 +54,9 @@ ifeq ($(NATIVE),)
 SYSROOT = /$(TARGET)
 FULL_TOOLCHAIN_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot
 FULL_MINGW_HEADERS_CONFIG += CC="$(XGCC)"
-FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include" LDFLAGS="-L$(CURDIR)/obj_sysroot/$(TARGET)/lib"
-FULL_MINGW_PTHREADS_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include" LDFLAGS="-L$(CURDIR)/obj_sysroot/$(TARGET)/lib"
-MINGW_VARS = AR=$(XAR) RANLIB=$(XRANLIB)
+FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include $(CPPFLAGS)" DLLTOOL=$(DLLTOOL) RC="$(XRC)"
+FULL_MINGW_PTHREADS_CONFIG += RC="$(XRC)" CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include $(CPPFLAGS)" LDFLAGS="-L$(CURDIR)/obj_sysroot/$(TARGET)/lib $(LDFLAGS)" DLLTOOL=$(DLLTOOL)
+MINGW_VARS = AS=$(XAS) AR=$(XAR) CC="$(XGCC)" RANLIB=$(XRANLIB)
 obj_mingw_headers/.lc_configured: | obj_toolchain/binutils/.lc_built
 obj_mingw_crt/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built
 obj_mingw_pthreads/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built obj_sysroot/.lc_libs_crt
@@ -197,6 +200,7 @@ obj_sysroot/.lc_libs_crt: | obj_mingw_crt/.lc_built
 obj_toolchain/.lc_built: | obj_toolchain/.lc_configured obj_sysroot/.lc_headers obj_sysroot/.lc_libs_crt
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)"
 	touch $@
+
 install-mingw-headers: | obj_mingw_headers/.lc_configured
 	cd obj_mingw_headers && $(MAKE) $(MINGW_VARS) DESTDIR=$(DESTDIR)$(OUTPUT)$(SYSROOT) install
 
