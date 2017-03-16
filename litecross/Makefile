@@ -42,17 +42,17 @@ FULL_MINGW_HEADERS_CONFIG = $(MINGW_CONFIG) \
 	--enable-idl --enable-secure-api
 
 FULL_MINGW_CRT_CONFIG = $(MINGW_CONFIG) \
-	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot
+	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot/$(TARGET)
 
 FULL_MINGW_PTHREADS_CONFIG = $(MINGW_CONFIG) \
-	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot
+	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot/$(TARGET)
 
 ifeq ($(NATIVE),)
 SYSROOT = /$(TARGET)
 FULL_TOOLCHAIN_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot
 FULL_MINGW_HEADERS_CONFIG += CC="$(XGCC)"
-FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
-FULL_MINGW_PTHREADS_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include"
+FULL_MINGW_CRT_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include" LDFLAGS="-L$(CURDIR)/obj_sysroot/$(TARGET)/lib"
+FULL_MINGW_PTHREADS_CONFIG += CC="$(XGCC)" CPP="$(XCPP)" CPPFLAGS="-I$(CURDIR)/obj_sysroot/$(TARGET)/include" LDFLAGS="-L$(CURDIR)/obj_sysroot/$(TARGET)/lib"
 MINGW_VARS = AR=$(XAR) RANLIB=$(XRANLIB)
 obj_mingw_headers/.lc_configured: | obj_toolchain/binutils/.lc_built
 obj_mingw_crt/.lc_configured: | obj_sysroot/.lc_headers obj_toolchain/gcc/.lc_built obj_toolchain/binutils/.lc_built obj_toolchain/gas/.lc_built
