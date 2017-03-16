@@ -16,7 +16,7 @@ XCPP = $(XGCC_DIR)/cpp -B $(XGCC_DIR)
 XAR  = $(CURDIR)/obj_toolchain/binutils/ar
 XAS  = $(CURDIR)/obj_toolchain/gas/as-new
 XRANLIB  = $(CURDIR)/obj_toolchain/binutils/ranlib
-XRC  = $(CURDIR)/obj_toolchain/binutils/windres --preprocessor="$(XGCC) -I$(CURDIR)/obj_sysroot/$(TARGET)/include -E -xc-header -DRC_INVOKED"
+XRC  = $(CURDIR)/obj_toolchain/binutils/windres --preprocessor=$(XGCC_DIR)/xgcc --preprocessor-arg=-B --preprocessor-arg=$(XGCC_DIR) --preprocessor-arg=-I$(CURDIR)/obj_sysroot/$(TARGET)/include --preprocessor-arg=-E --preprocessor-arg=-xc-header --preprocessor-arg=-DRC_INVOKED
 DLLTOOL = $(CURDIR)/obj_toolchain/binutils/dlltool
 
 -include config.mak
