@@ -1,5 +1,6 @@
 language: c
 compiler: gcc
+dist: trusty
 env:
 - TRIPLET=i686-w64-mingw32
 - TRIPLET=x86_64-w64-mingw32
