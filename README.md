@@ -101,3 +101,16 @@ Patches included
 - SH/FDPIC ABI support
 
 Do these actually work on Windows? I'll be honest, I don't totally know.
+
+Downloads
+---------
+
+See this repo's "releases" tab for pre-compiled downloads.
+
+Pre-compiled binaries are:
+
+* Statically linked with musl libc for 32bit processors
+* Relocatable
+
+They should run on any intel/amd platform, 32bit or 64bit. You can extract
+them anywhere, there's no hard-coded paths.
