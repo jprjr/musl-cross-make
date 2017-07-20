@@ -9,7 +9,7 @@ GMP_VER = 6.1.1
 MPC_VER = 1.0.3
 MPFR_VER = 3.1.4
 
-MINGW_VER = v5.0.1
+MINGW_VER = v5.0.2
 
 GNU_SITE = https://ftp.gnu.org/pub/gnu
 GCC_SITE = $(GNU_SITE)/gcc
