@@ -9,12 +9,13 @@ if [[ -z "$target" ]]; then
 fi
 
 declare -A versions
-versions[binutils]=2.27
-versions[gcc]=6.3.0
+versions[binutils]=2.28.1
+versions[gcc]=7.1.0
 versions[mingw]=v5.0.2
-versions[gmp]=6.1.1
+versions[gmp]=6.1.2
 versions[mpc]=1.0.3
-versions[mpfr]=3.1.4
+versions[mpfr]=3.1.5
+versions[isl]=0.18
 
 printf 'TARGET = %s\n' "$target" > config.mak
 
@@ -30,6 +31,7 @@ printf 'MINGW_VER = %s\n' "${versions[mingw]}" >> config.mak
 printf 'GMP_VER = %s\n' "${versions[gmp]}" >> config.mak
 printf 'MPC_VER = %s\n' "${versions[mpc]}" >> config.mak
 printf 'MPFR_VER = %s\n' "${versions[mpfr]}" >> config.mak
+printf 'ISL_VER = %s\n' "${versions[isl]}" >> config.mak
 
 mkdir -p log
 mkdir -p dist
