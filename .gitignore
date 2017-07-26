@@ -1,10 +1,14 @@
 /config.mak
 /sources/
 /output/
+/dist/
+/tools/
+/log/
 /binutils-*/
 /gcc-*/
 /mingw-*/
 /gmp-*/
 /mpc-*/
 /mpfr-*/
+/isl-*/
 /build-*/
