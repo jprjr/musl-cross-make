@@ -147,6 +147,21 @@ $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@
 
+$(BUILD_DIR)/obj_toolchain/binutils/.lc_built: $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
+	cd $(BUILD_DIR) && $(MAKE) obj_toolchain/binutils/.lc_built
+
+$(BUILD_DIR)/obj_toolchain/gas/.lc_built: $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak $(BUILD_DIR)/obj_toolchain/binutils/.lc_built
+	cd $(BUILD_DIR) && $(MAKE) obj_toolchain/gas/.lc_built
+
+$(BUILD_DIR)/obj_toolchain/gcc/.lc_built: $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak $(BUILD_DIR)/obj_toolchain/gas/.lc_built
+	cd $(BUILD_DIR) && $(MAKE) obj_toolchain/gcc/.lc_built
+
+binutils: | $(BUILD_DIR)/obj_toolchain/binutils/.lc_built
+
+gas: | $(BUILD_DIR)/obj_toolchain/gas/.lc_built
+
+gcc: | $(BUILD_DIR)/obj_toolchain/gcc/.lc_built
+
 install: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) OUTPUT=$(OUTPUT) $@
 
