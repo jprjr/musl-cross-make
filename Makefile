@@ -21,7 +21,7 @@ ISL_SITE = http://isl.gforge.inria.fr/
 
 MINGW_SITE = https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/
 
-DL_CMD = wget -c -O
+DL_CMD = curl -R -L -o
 
 BUILD_DIR = build-$(TARGET)
 
