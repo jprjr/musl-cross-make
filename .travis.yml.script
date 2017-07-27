@@ -48,8 +48,8 @@ printf 'COMMON_CONFIG += CC="i486-linux-musl-gcc -static --static" CXX="i486-lin
 export PATH="$(pwd)/tools/gcc-i486-linux-musl/i486-linux-musl/bin:$(pwd)/tools/gcc-i486-linux-musl/bin:$PATH"
 
 make extract_all >>log/${target} 2>&1
-make -j$(nproc) gcc >>log/${target} 2>&1
-make -j$(nproc) >>log/${target} 2>&1
+make -j4 gcc >>log/${target} 2>&1
+make -j4 >>log/${target} 2>&1
 make install >>log/${target} 2>&1
 make clean >>log/${target} 2>&1
 
