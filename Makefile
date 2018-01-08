@@ -3,13 +3,13 @@ OUTPUT = $(CURDIR)/output
 SOURCES = sources
 
 CONFIG_SUB_REV = 3d5db9ebe860
-BINUTILS_VER = 2.27
-GCC_VER = 6.3.0
-GMP_VER = 6.1.1
+BINUTILS_VER = 2.28.1
+GCC_VER = 7.2.0
+GMP_VER = 6.1.2
 MPC_VER = 1.0.3
-MPFR_VER = 3.1.4
+MPFR_VER = 4.0.0
 
-MINGW_VER = v5.0.2
+MINGW_VER = v5.0.3
 
 GNU_SITE = https://ftp.gnu.org/pub/gnu
 GCC_SITE = $(GNU_SITE)/gcc
