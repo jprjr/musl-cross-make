@@ -2,15 +2,16 @@
 set -e
 
 target=$1
+gccver=$2
 
-if [[ -z "$target" ]]; then
+if [[ -z "$gccver" ]]; then
     printf 'Usage: %s <target>\n' "$0"
     exit 1
 fi
 
 declare -A versions
 versions[binutils]=2.28.1
-versions[gcc]=7.2.0
+versions[gcc]=$gccver
 versions[mingw]=v5.0.3
 versions[gmp]=6.1.2
 versions[mpc]=1.0.3
@@ -44,7 +45,7 @@ tar xf tools/gcc-i486-linux-musl.tar.gz -C tools/gcc-i486-linux-musl
 
 printf 'COMMON_CONFIG += CC="i486-linux-musl-gcc -static --static" CXX="i486-linux-musl-g++ -static --static"\n' >> config.mak
 
-export PATH="$(pwd)/tools/gcc-i486-linux-musl/i486-linux-musl/bin:$(pwd)/tools/gcc-i486-linux-musl/bin:$PATH"
+export PATH="$(pwd)/tools/gcc-i486-linux-musl/bin:$PATH"
 
 make extract_all >>log/${target} 2>&1
 make -j$(nproc) gcc >>log/${target} 2>&1
@@ -52,7 +53,7 @@ make -j$(nproc) >>log/${target} 2>&1
 make install >>log/${target} 2>&1
 make clean >>log/${target} 2>&1
 
-tar -czf "dist/gcc-${versions[gcc]}-${target}.tar.gz" \
+tar -cJf "dist/gcc-${versions[gcc]}-${target}.tar.xz" \
   --owner 0 \
   --group 0 \
  -C output .
@@ -77,10 +78,10 @@ rm -f dist/release.md
 touch dist/release.md
 printf 'Built using `mingw-%s`\n' "${versions[mingw]}" >> dist/release.md
 
-rm -f dist/manifest.txt
-touch dist/manifest.txt
+rm -f dist/gcc-$gccver-manifest.txt
+touch dist/gcc-$gccver-manifest.txt
 for i in "${!versions[@]}"; do
-    printf '%s=%s\n' "${i}" "${versions[$i]}" >> dist/manifest.txt
+    printf '%s=%s\n' "${i}" "${versions[$i]}" >> dist/gcc-$gccver-manifest.txt
 done
 
 # release
@@ -96,14 +97,14 @@ done
   --user "${USERNAME}" \
   --repo "${REPONAME}" \
   --tag "${TRAVIS_TAG}" \
-  --name "manifest.txt" \
-  --file "dist/manifest.txt" >>log/${target} 2>&1 || true
+  --name "gcc-$gccver-manifest.txt" \
+  --file "dist/gcc-$gccver-manifest.txt" >>log/${target} 2>&1 || true
 
 # compiled gcc
 ./github-release upload \
   --user "${USERNAME}" \
   --repo "${REPONAME}" \
   --tag "${TRAVIS_TAG}" \
-  --name "gcc-${versions[gcc]}-${target}.tar.gz" \
-  --file "dist/gcc-${versions[gcc]}-${target}.tar.gz" >>log/${target} 2>&1
+  --name "gcc-${versions[gcc]}-${target}.tar.xz" \
+  --file "dist/gcc-${versions[gcc]}-${target}.tar.xz" >>log/${target} 2>&1
 

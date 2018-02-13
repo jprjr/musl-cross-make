@@ -1,5 +1,4 @@
 
-OUTPUT = $(CURDIR)/output
 SOURCES = sources
 
 CONFIG_SUB_REV = 3d5db9ebe860
@@ -8,8 +7,9 @@ GCC_VER = 7.2.0
 GMP_VER = 6.1.2
 MPC_VER = 1.0.3
 MPFR_VER = 4.0.0
-
+ZLIB_VER = 1.2.11
 MINGW_VER = v5.0.3
+
 
 GNU_SITE = https://ftp.gnu.org/pub/gnu
 GCC_SITE = $(GNU_SITE)/gcc
@@ -18,16 +18,33 @@ GMP_SITE = $(GNU_SITE)/gmp
 MPC_SITE = $(GNU_SITE)/mpc
 MPFR_SITE = $(GNU_SITE)/mpfr
 ISL_SITE = http://isl.gforge.inria.fr/
+ZLIB_SITE = https://www.zlib.net/
 
 MINGW_SITE = https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/
 
+
+
+
 DL_CMD = curl -R -L -o
 
-BUILD_DIR = build-$(TARGET)
+ifneq ($(NATIVE),)
+HOST := $(TARGET)
+endif
+
+ifneq ($(HOST),)
+BUILD_DIR = build/$(HOST)/$(TARGET)
+OUTPUT = $(CURDIR)/output-$(HOST)
+else
+BUILD_DIR = build/local/$(TARGET)
+OUTPUT = $(CURDIR)/output
+endif
+
+REL_TOP = ../../..
 
 -include config.mak
 
 SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) mingw-w64-$(MINGW_VER) \
+	$(if $(ZLIB_VER),zlib-$(ZLIB_VER)) \
 	$(if $(GMP_VER),gmp-$(GMP_VER)) \
 	$(if $(MPC_VER),mpc-$(MPC_VER)) \
 	$(if $(MPFR_VER),mpfr-$(MPFR_VER)) \
@@ -37,7 +54,7 @@ SRC_DIRS = gcc-$(GCC_VER) binutils-$(BINUTILS_VER) mingw-w64-$(MINGW_VER) \
 all:
 
 clean:
-	rm -rf gcc-* binutils-* mingw-w64-* gmp-* mpc-* mpfr-* isl-* build-*
+	rm -rf gcc-* binutils-* mingw-w64-* gmp-* mpc-* mpfr-* isl-* build-* build zlib-*
 
 distclean: clean
 	rm -rf sources
@@ -48,6 +65,7 @@ distclean: clean
 
 ifeq ($(SOURCES),sources)
 
+$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/zlib*)): SITE = $(ZLIB_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/gmp*)): SITE = $(GMP_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/mpc*)): SITE = $(MPC_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/mpfr*)): SITE = $(MPFR_SITE)
@@ -55,6 +73,10 @@ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/isl*)): SITE = $(ISL_SIT
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/binutils*)): SITE = $(BINUTILS_SITE)
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/gcc*)): SITE = $(GCC_SITE)/$(basename $(basename $(notdir $@)))
 $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/mingw-w64*)): SITE = $(MINGW_SITE)
+
+
+
+
 
 $(SOURCES):
 	mkdir -p $@
@@ -130,19 +152,22 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 $(BUILD_DIR)/Makefile: | $(BUILD_DIR)
-	ln -sf ../litecross/Makefile $@
+	ln -sf $(REL_TOP)/litecross/Makefile $@
 
 $(BUILD_DIR)/config.mak: | $(BUILD_DIR)
 	printf >$@ '%s\n' \
-	"MINGW_SRCDIR = ../mingw-w64-$(MINGW_VER)" \
-	"GCC_SRCDIR = ../gcc-$(GCC_VER)" \
-	"BINUTILS_SRCDIR = ../binutils-$(BINUTILS_VER)" \
-	$(if $(GMP_VER),"GMP_SRCDIR = ../gmp-$(GMP_VER)") \
-	$(if $(MPC_VER),"MPC_SRCDIR = ../mpc-$(MPC_VER)") \
-	$(if $(MPFR_VER),"MPFR_SRCDIR = ../mpfr-$(MPFR_VER)") \
-	$(if $(ISL_VER),"ISL_SRCDIR = ../isl-$(ISL_VER)") \
-	$(if $(LINUX_VER),"LINUX_SRCDIR = ../linux-$(LINUX_VER)") \
-	"-include ../config.mak"
+	"TARGET = $(TARGET)" \
+	"HOST = $(HOST)" \
+	"MINGW_SRCDIR = $(REL_TOP)/mingw-w64-$(MINGW_VER)" \
+	"GCC_SRCDIR = $(REL_TOP)/gcc-$(GCC_VER)" \
+	"BINUTILS_SRCDIR = $(REL_TOP)/binutils-$(BINUTILS_VER)" \
+	$(if $(ZLIB_VER),"ZLIB_SRCDIR = $(REL_TOP)/zlib-$(ZLIB_VER)") \
+	$(if $(GMP_VER),"GMP_SRCDIR = $(REL_TOP)/gmp-$(GMP_VER)") \
+	$(if $(MPC_VER),"MPC_SRCDIR = $(REL_TOP)/mpc-$(MPC_VER)") \
+	$(if $(MPFR_VER),"MPFR_SRCDIR = $(REL_TOP)/mpfr-$(MPFR_VER)") \
+	$(if $(ISL_VER),"ISL_SRCDIR = $(REL_TOP)/isl-$(ISL_VER)") \
+	$(if $(LINUX_VER),"LINUX_SRCDIR = $(REL_TOP)/linux-$(LINUX_VER)") \
+	"-include $(REL_TOP)/config.mak"
 
 all: | $(SRC_DIRS) $(BUILD_DIR) $(BUILD_DIR)/Makefile $(BUILD_DIR)/config.mak
 	cd $(BUILD_DIR) && $(MAKE) $@

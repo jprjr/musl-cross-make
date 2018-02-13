@@ -50,7 +50,11 @@ FULL_MINGW_CRT_CONFIG = $(MINGW_CONFIG) \
 FULL_MINGW_PTHREADS_CONFIG = $(MINGW_CONFIG) \
 	--prefix= --host=$(TARGET) --with-sysroot=$(CURDIR)/obj_sysroot/$(TARGET)
 
-ifeq ($(NATIVE),)
+ifneq ($(NATIVE),)
+HOST:=$(TARGET)
+endif
+
+ifeq ($(HOST),)
 SYSROOT = /$(TARGET)
 FULL_TOOLCHAIN_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot
 FULL_MINGW_HEADERS_CONFIG += CC="$(XGCC)"
@@ -64,7 +68,7 @@ obj_toolchain/gcc/.lc_built: | obj_sysroot/usr obj_sysroot/lib64 obj_sysroot/inc
 obj_toolchain/.lc_built: | obj_sysroot/.lc_headers obj_sysroot/.lc_libs_crt
 else
 SYSROOT = /
-FULL_TOOLCHAIN_CONFIG += --host=$(TARGET)
+FULL_TOOLCHAIN_CONFIG += --host=$(HOST)
 MINGW_VARS = 
 endif
 
@@ -97,6 +101,12 @@ src_gcc: | $(GCC_SRCDIR)
 src_mingw: | $(MINGW_SRCDIR)
 	ln -sf $(MINGW_SRCDIR) $@
 
+ifneq ($(ZLIB_SRCDIR),)
+src_toolchain: src_zlib
+src_zlib: | $(ZLIB_SRCDIR)
+	ln -sf "$(ZLIB_SRCDIR)" $@
+endif
+
 ifneq ($(GMP_SRCDIR),)
 src_toolchain: src_gmp
 src_gmp: | $(GMP_SRCDIR)
@@ -126,6 +136,7 @@ src_toolchain: src_binutils src_gcc
 	mkdir $@.tmp
 	cd $@.tmp && ln -sf ../src_binutils/* .
 	cd $@.tmp && ln -sf ../src_gcc/* .
+	$(if $(ZLIB_SRCDIR),cd $@.tmp && rm -f zlib && ln -sf ../src_zlib zlib)
 	$(if $(GMP_SRCDIR),cd $@.tmp && ln -sf ../src_gmp gmp)
 	$(if $(MPC_SRCDIR),cd $@.tmp && ln -sf ../src_mpc mpc)
 	$(if $(MPFR_SRCDIR),cd $@.tmp && ln -sf ../src_mpfr mpfr)
@@ -145,19 +156,28 @@ obj_sysroot/lib64: | obj_sysroot
 	ln -sf lib $@
 
 obj_toolchain/.lc_configured: | obj_toolchain src_toolchain
-	cd obj_toolchain && ../src_toolchain/configure $(FULL_TOOLCHAIN_CONFIG)
+	cd obj_toolchain && ln -sf ../obj_zlib zlib && ../src_toolchain/configure $(FULL_TOOLCHAIN_CONFIG)
 	touch $@
 
-obj_toolchain/gas/.lc_built: | obj_toolchain/.lc_configured
-	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-gas
+obj_toolchain/gas/.lc_built: | obj_toolchain/.lc_configured obj_zlib/.lc_built 
+	cd obj_toolchain &&  $(MAKE) MAKE="$(MAKE)" all-gas
 	touch $@
 
-obj_toolchain/binutils/.lc_built: | obj_toolchain/.lc_configured
+obj_toolchain/binutils/.lc_built: | obj_toolchain/.lc_configured obj_zlib/.lc_built
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-binutils
 	touch $@
 
-obj_toolchain/gcc/.lc_built: | obj_sysroot/.lc_headers obj_toolchain/.lc_configured
+obj_toolchain/gcc/.lc_built: |obj_sysroot/.lc_headers obj_toolchain/.lc_configured obj_zlib/.lc_built
 	cd obj_toolchain && $(MAKE) MAKE="$(MAKE)" all-gcc
+	touch $@
+
+obj_zlib/.lc_configured: | obj_zlib src_zlib
+	cd obj_zlib && ../src_zlib/configure --static --prefix= $(COMMON_CONFIG)
+	touch $@
+
+obj_zlib/.lc_built: | obj_zlib/.lc_configured
+	cd obj_zlib && $(MAKE)
+	cd obj_zlib && ln -sf ../src_zlib/*.h .
 	touch $@
 
 obj_mingw_headers/.lc_configured: | obj_mingw_headers src_mingw
