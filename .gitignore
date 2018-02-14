@@ -12,3 +12,5 @@
 /mpfr-*/
 /isl-*/
 /build-*/
+/build
+/zlib-*
