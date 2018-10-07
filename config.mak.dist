@@ -12,6 +12,8 @@
 # TARGET = arm-linux-musleabi
 # TARGET = arm-linux-musleabihf
 # TARGET = sh2eb-linux-muslfdpic
+# TARGET = x86_64-w64-mingw32
+# TARGET = i486-w64-mingw32
 # ...
 
 # By default, cross compilers are installed to ./output under the top-level
@@ -64,6 +66,9 @@
 # GCC_CONFIG += --enable-languages=c,c++
 # GCC_CONFIG += --disable-libquadmath --disable-decimal-float
 # GCC_CONFIG += --disable-multilib
+
+# recommend: disable building lib32 crt when building 64-bit compiler
+# MINGW_CRT_CONFIG += --disable-lib32 --enable-lib64 --disable-libarm32
 
 # You can keep the local build path out of your toolchain binaries and
 # target libraries with the following, but then gdb needs to be told

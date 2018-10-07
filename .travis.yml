@@ -1,0 +1,17 @@
+language: c
+compiler: gcc
+dist: trusty
+env:
+- TRIPLET=i486-w64-mingw32 GCCVER=4.9.4
+- TRIPLET=x86_64-w64-mingw32 GCCVER=4.9.4
+- TRIPLET=i486-w64-mingw32 GCCVER=5.5.0
+- TRIPLET=x86_64-w64-mingw32 GCCVER=5.5.0
+- TRIPLET=i486-w64-mingw32 GCCVER=6.4.0
+- TRIPLET=x86_64-w64-mingw32 GCCVER=6.4.0
+- TRIPLET=i486-w64-mingw32 GCCVER=7.3.0
+- TRIPLET=x86_64-w64-mingw32 GCCVER=7.3.0
+script:
+- nproc
+- travis_wait 60 bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.script $TRIPLET $GCCVER
+after_failure:
+- bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.after_failure
