@@ -1,0 +1,111 @@
+#!/bin/bash
+set -e
+
+target=$1
+gccver=$2
+
+if [[ -z "$gccver" ]]; then
+    printf 'Usage: %s <target>\n' "$0"
+    exit 1
+fi
+
+declare -A versions
+versions[binutils]=2.31.1
+versions[gcc]=$gccver
+versions[mingw]=v5.0.3
+versions[gmp]=6.1.2
+versions[mpc]=1.1.0
+versions[mpfr]=4.0.1
+versions[isl]=0.19
+
+printf 'TARGET = %s\n' "$target" > config.mak
+
+printf 'COMMON_CONFIG += --disable-nls\n' >> config.mak
+printf 'COMMON_CONFIG += CFLAGS="-g0 -Os" CXXFLAGS="-g0 -Os" LDFLAGS="-s"\n' >> config.mak
+printf 'GCC_CONFIG += --enable-languages=c,c++\n' >> config.mak
+printf 'GCC_CONFIG += --disable-libquadmath --disable-decimal-float\n' >> config.mak
+printf 'GCC_CONFIG += --disable-multilib\n' >> config.mak
+
+printf 'BINUTILS_VER = %s\n' "${versions[binutils]}" >> config.mak
+printf 'GCC_VER = %s\n' "${versions[gcc]}" >> config.mak
+printf 'MINGW_VER = %s\n' "${versions[mingw]}" >> config.mak
+printf 'GMP_VER = %s\n' "${versions[gmp]}" >> config.mak
+printf 'MPC_VER = %s\n' "${versions[mpc]}" >> config.mak
+printf 'MPFR_VER = %s\n' "${versions[mpfr]}" >> config.mak
+printf 'ISL_VER = %s\n' "${versions[isl]}" >> config.mak
+printf 'LINUX_VER = \n' >> config.mak
+printf 'MUSL_VER = \n' >> config.mak
+
+mkdir -p log
+mkdir -p dist
+mkdir -p output
+mkdir -p tools
+
+mkdir -p tools/gcc-x86_64-linux-musl
+curl -R -L -o tools/gcc-x86_64-linux-musl.tar.xz "https://github.com/just-containers/musl-cross-make/releases/download/v11/gcc-6.4.0-x86_64-linux-musl.tar.xz" >> log/gcc-${gccver}-${target} 2>&1
+tar xf tools/gcc-x86_64-linux-musl.tar.xz -C tools/gcc-x86_64-linux-musl
+
+printf 'COMMON_CONFIG += CC="x86_64-linux-musl-gcc -static --static" CXX="x86_64-linux-musl-g++ -static --static"\n' >> config.mak
+
+export PATH="$(pwd)/tools/gcc-x86_64-linux-musl/bin:$PATH"
+
+make -j$(nproc) extract_all >>log/gcc-${gccver}-${target} 2>&1
+make -j$(nproc) >>log/gcc-${gccver}-${target} 2>&1
+make install >>log/gcc-${gccver}-${target} 2>&1
+make clean >>log/gcc-${gccver}-${target} 2>&1
+
+tar -cJf "dist/gcc-${versions[gcc]}-${target}.tar.xz" \
+  --owner 0 \
+  --group 0 \
+ -C output .
+
+rm -rf output
+
+rm -f dist/gcc-$gccver-manifest.txt
+touch dist/gcc-$gccver-manifest.txt
+for i in "${!versions[@]}"; do
+    printf '%s=%s\n' "${i}" "${versions[$i]}" >> dist/gcc-$gccver-manifest.txt
+done
+
+# exit if TRAVIS_TAG is empty, no need to release anything
+if [ -z "${TRAVIS_TAG}" ]; then
+  exit 0
+fi
+
+
+# download and untar github-release
+wget -nv -O github-release.amd64.tar.bz2 https://github.com/aktau/github-release/releases/download/v0.6.2/linux-amd64-github-release.tar.bz2
+tar xf github-release.amd64.tar.bz2 --strip-components=3
+
+# get user and repo names
+USERNAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f1)
+REPONAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f2)
+
+rm -f dist/release.md
+touch dist/release.md
+printf 'Built using `mingw-%s`\n' "${versions[mingw]}" >> dist/release.md
+
+# release
+./github-release release \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "${TRAVIS_TAG}" \
+  --description "$(cat dist/release.md)" >>log/gcc-${gccver}-${target} 2>&1 || true
+
+# manifest
+./github-release upload \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "gcc-$gccver-manifest.txt" \
+  --file "dist/gcc-$gccver-manifest.txt" >>log/gcc-${gccver}-${target} 2>&1 || true
+
+# compiled gcc
+./github-release upload \
+  --user "${USERNAME}" \
+  --repo "${REPONAME}" \
+  --tag "${TRAVIS_TAG}" \
+  --name "gcc-${versions[gcc]}-${target}.tar.xz" \
+  --file "dist/gcc-${versions[gcc]}-${target}.tar.xz" >>log/gcc-${gccver}-${target} 2>&1
+
