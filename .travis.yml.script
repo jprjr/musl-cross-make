@@ -12,7 +12,7 @@ fi
 declare -A versions
 versions[binutils]=2.31.1
 versions[gcc]=$gccver
-versions[mingw]=v6.0.0
+versions[mingw]=v7.0.0
 versions[gmp]=6.1.2
 versions[mpc]=1.1.0
 versions[mpfr]=4.0.2
