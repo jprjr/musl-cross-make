@@ -4,7 +4,11 @@
  	struct timeval tv;
  	gettimeofday (&tv, NULL);
  	// Convert the absolute timeout value to a relative timeout
+<<<<<<< HEAD
 +#if defined(SYS_futex_time64) && SYS_futex_time64 != SYS_futex
+=======
++#if defined(SYS_futex_time64)
+>>>>>>> e0e81a7 (sync latest patches from upstream)
 +	struct
 +	  {
 +	    long tv_sec;
