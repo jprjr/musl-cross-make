@@ -8,6 +8,7 @@ GCC_CONFIG_FOR_TARGET =
 COMMON_CONFIG = 
 GCC_CONFIG = 
 MINGW_CRT_CONFIG =
+MINGW_HEADERS_CONFIG =
 TOOLCHAIN_CONFIG = 
 
 XGCC_DIR = $(CURDIR)/obj_gcc/gcc
@@ -89,17 +90,18 @@ FULL_GCC_CONFIG = --enable-languages=c,c++ \
 	--target=$(TARGET) --prefix= \
 	--libdir=/lib --disable-multilib \
 	--with-sysroot=$(SYSROOT) \
-	--enable-tls \
-	--disable-libmudflap --disable-libsanitizer \
-	--disable-gnu-indirect-function \
-	--disable-libmpx \
-	--enable-initfini-array \
-	--enable-libstdcxx-time=rt
+	--enable-fully-dynamic-string \
+	--enable-libstdcxx-time=yes \
+	--enable-libstdcxx-filesystem-ts=yes \
+	--enable-cloog-backend=isl \
+	--disable-sjlj-exceptions \
+	--disable-multilib \
+	--with-dwarf2
 
 FULL_MUSL_CONFIG = $(MUSL_CONFIG) \
 	--prefix= --host=$(TARGET)
 
-FULL_MINGW_HEADERS_CONFIG = $(MINGW_CONFIG) \
+FULL_MINGW_HEADERS_CONFIG = $(MINGW_CONFIG) $(MINGW_HEADERS_CONFIG) \
 	--prefix= --host=$(TARGET) --enable-sdk=all \
 	--enable-idl --enable-secure-api --with-sysroot=$(SYSROOT)
 

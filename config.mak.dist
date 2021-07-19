@@ -85,6 +85,11 @@
 # recommend: disable building lib32 crt when building 64-bit compiler
 # MINGW_CRT_CONFIG += --disable-lib32 --enable-lib64 --disable-libarm32
 
+# if you'd like your toolchain to target the Universal CRT instead of MSVCRT,
+# uncomment the following lines
+# MINGW_CRT_CONFIG += --with-default-msvcrt=ucrt
+# MINGW_HEADERS_CONFIG += --with-default-msvcrt=ucrt
+
 # You can keep the local build path out of your toolchain binaries and
 # target libraries with the following, but then gdb needs to be told
 # where to look for source files.
